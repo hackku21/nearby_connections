@@ -44,7 +44,7 @@ class _MyBodyState extends State<Body> {
     });
   }
 
-  // static String userName =
+  static late String userName;
   //     "00000 11111 22222 33333 44444 55555 66666 77777 88888 99999 aaaaa bbbbb ccccc ddddd eeeee"; // Random().nextInt(10000).toString();
   final Strategy strategy = Strategy.P2P_STAR;
   Map<String, ConnectionInfo> endpointMap = Map();
