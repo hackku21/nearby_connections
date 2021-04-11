@@ -12,6 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
   image_picker: ^0.7.4
+  flutter_udid: ^2.0.0
+
   nearby_connections:
     # When depending on this package from a real application you should use:
     #   nearby_connections: ^x.y.z
