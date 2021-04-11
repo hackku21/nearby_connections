@@ -40,8 +40,8 @@ class _MyBodyState extends State<Body> {
     super.initState();
     WidgetsBinding.instance!.addPostFrameCallback((_) {
       // _userName = await FlutterUdid.consistentUdid;
-      startAdver();
-      startDisco();
+      startAdvertising();
+      startDiscovery();
     });
   }
 
@@ -54,69 +54,6 @@ class _MyBodyState extends State<Body> {
   Map<int, String> map =
       Map(); //store filename mapped to corresponding payloadId
 
-  void startAdver() async {
-    try {
-      bool a = await Nearby().startAdvertising(
-        "adv" + userName,
-        strategy,
-        onConnectionInitiated: discoverOnConnectionInit,
-        onConnectionResult: (id, status) {
-          print("userName = $userName");
-          print("id = $id");
-          showSnackbar(status);
-        },
-        onDisconnected: (id) {
-          showSnackbar(
-              "Disconnected: ${endpointMap[id]!.endpointName}, id $id");
-          setState(() {
-            endpointMap.remove(id);
-          });
-        },
-      );
-      showSnackbar("ADVERTISING: " + a.toString());
-    } catch (exception) {
-      showSnackbar(exception);
-    }
-  }
-
-  void startDisco() async {
-    try {
-      bool a = await Nearby().startDiscovery(
-        "dis" + userName,
-        strategy,
-        onEndpointFound: (id, name, serviceId) {
-          print("userName = $userName");
-          print("id = $id");
-
-          Nearby().requestConnection(
-            userName,
-            id,
-            onConnectionInitiated: (id, info) {
-              discoverOnConnectionInit(id, info);
-            },
-            onConnectionResult: (id, status) {
-              showSnackbar(status);
-            },
-            onDisconnected: (id) {
-              setState(() {
-                endpointMap.remove(id);
-              });
-              showSnackbar(
-                  "Disconnected from: ${endpointMap[id]!.endpointName}, id $id");
-            },
-          );
-        },
-        onEndpointLost: (id) {
-          showSnackbar(
-              "Lost discovered Endpoint: ${endpointMap[id]!.endpointName}, id $id");
-        },
-      );
-      showSnackbar("DISCOVERING: " + a.toString());
-    } catch (e) {
-      showSnackbar(e);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -128,86 +65,21 @@ class _MyBodyState extends State<Body> {
             Wrap(
               children: <Widget>[
                 ElevatedButton(
-                  child: Text("Start Advertising"),
-                  onPressed: () async {
-                    // try {
-                    //   bool a = await Nearby().startAdvertising(
-                    //     "adv" + userName,
-                    //     strategy,
-                    //     onConnectionInitiated: discoverOnConnectionInit,
-                    //     onConnectionResult: (id, status) {
-                    //       print("userName = $userName");
-                    //       print("id = $id");
-                    //       showSnackbar(status);
-                    //     },
-                    //     onDisconnected: (id) {
-                    //       showSnackbar(
-                    //           "Disconnected: ${endpointMap[id]!.endpointName}, id $id");
-                    //       setState(() {
-                    //         endpointMap.remove(id);
-                    //       });
-                    //     },
-                    //   );
-                    //   showSnackbar("ADVERTISING: " + a.toString());
-                    // } catch (exception) {
-                    //   showSnackbar(exception);
-                    // }
-                  },
-                ),
-                ElevatedButton(
-                  child: Text("Stop Advertising"),
-                  onPressed: () async {
-                    await Nearby().stopAdvertising();
-                  },
-                ),
-              ],
-            ),
-            Wrap(
-              children: <Widget>[
-                ElevatedButton(
-                  child: Text("Start Discovery"),
+                  child: Text("Restart"),
                   onPressed: () async {
                     try {
-                      bool a = await Nearby().startDiscovery(
-                        "dis" + userName,
-                        strategy,
-                        onEndpointFound: (id, name, serviceId) {
-                          print("userName = $userName");
-                          print("id = $id");
-
-                          Nearby().requestConnection(
-                            userName,
-                            id,
-                            onConnectionInitiated: (id, info) {
-                              discoverOnConnectionInit(id, info);
-                            },
-                            onConnectionResult: (id, status) {
-                              showSnackbar(status);
-                            },
-                            onDisconnected: (id) {
-                              setState(() {
-                                endpointMap.remove(id);
-                              });
-                              showSnackbar(
-                                  "Disconnected from: ${endpointMap[id]!.endpointName}, id $id");
-                            },
-                          );
-                        },
-                        onEndpointLost: (id) {
-                          showSnackbar(
-                              "Lost discovered Endpoint: ${endpointMap[id]!.endpointName}, id $id");
-                        },
-                      );
-                      showSnackbar("DISCOVERING: " + a.toString());
-                    } catch (e) {
-                      showSnackbar(e);
+                      stopAll();
+                      startAdvertising();
+                      startDiscovery();
+                    } catch (exception) {
+                      showSnackbar(exception);
                     }
                   },
                 ),
                 ElevatedButton(
-                  child: Text("Stop Discovery"),
+                  child: Text("Stop"),
                   onPressed: () async {
-                    await Nearby().stopDiscovery();
+                    stopAll();
                   },
                 ),
               ],
@@ -269,6 +141,78 @@ class _MyBodyState extends State<Body> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(a.toString()),
     ));
+  }
+
+  void stopAll() async {
+    await Nearby().stopAllEndpoints();
+    await Nearby().stopAdvertising();
+    await Nearby().stopDiscovery();
+    setState(() {});
+  }
+
+  void startDiscovery() async {
+    try {
+      bool a = await Nearby().startDiscovery(
+        "dis" + userName,
+        strategy,
+        onEndpointFound: (id, name, serviceId) {
+          print("userName = $userName");
+          print("id = $id");
+
+          Nearby().requestConnection(
+            userName,
+            id,
+            onConnectionInitiated: (id, info) {
+              discoverOnConnectionInit(id, info);
+            },
+            onConnectionResult: (id, status) {
+              showSnackbar(status);
+            },
+            onDisconnected: (id) {
+              setState(() {
+                endpointMap.remove(id);
+              });
+              showSnackbar(
+                  "Disconnected from: ${endpointMap[id]!.endpointName}, id $id");
+            },
+          );
+        },
+        onEndpointLost: (id) {
+          showSnackbar(
+              "Lost discovered Endpoint: ${endpointMap[id]!.endpointName}, id $id");
+        },
+      );
+      showSnackbar("DISCOVERING: " + a.toString());
+    } catch (e) {
+      showSnackbar(e);
+    }
+    setState(() {});
+  }
+
+  void startAdvertising() async {
+    try {
+      bool a = await Nearby().startAdvertising(
+        "adv" + userName,
+        strategy,
+        onConnectionInitiated: discoverOnConnectionInit,
+        onConnectionResult: (id, status) {
+          print("userName = $userName");
+          print("id = $id");
+          showSnackbar(status);
+        },
+        onDisconnected: (id) {
+          showSnackbar(
+              "Disconnected: ${endpointMap[id]!.endpointName}, id $id");
+          setState(() {
+            endpointMap.remove(id);
+          });
+        },
+      );
+      showSnackbar("ADVERTISING: " + a.toString());
+    } catch (exception) {
+      showSnackbar(exception);
+    }
+    setState(() {});
   }
 
   /// Called upon Connection request (on both devices)
