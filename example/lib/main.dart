@@ -39,20 +39,15 @@ class _MyBodyState extends State<Body> {
   void initState() {
     super.initState();
     WidgetsBinding.instance!.addPostFrameCallback((_) {
-      // _userName = await FlutterUdid.consistentUdid;
       startAdvertising();
       startDiscovery();
     });
   }
 
-  final String userName =
-      "00000 11111 22222 33333 44444 55555 66666 77777 88888 99999 aaaaa bbbbb ccccc ddddd eeeee"; // Random().nextInt(10000).toString();
+  // static String userName =
+  //     "00000 11111 22222 33333 44444 55555 66666 77777 88888 99999 aaaaa bbbbb ccccc ddddd eeeee"; // Random().nextInt(10000).toString();
   final Strategy strategy = Strategy.P2P_STAR;
   Map<String, ConnectionInfo> endpointMap = Map();
-  static String _userName = "";
-  File? tempFile; //reference to the file currently being transferred
-  Map<int, String> map =
-      Map(); //store filename mapped to corresponding payloadId
 
   @override
   Widget build(BuildContext context) {
@@ -62,28 +57,7 @@ class _MyBodyState extends State<Body> {
         child: ListView(
           children: <Widget>[
             Text("User Name: " + userName),
-            Wrap(
-              children: <Widget>[
-                ElevatedButton(
-                  child: Text("Restart"),
-                  onPressed: () async {
-                    try {
-                      stopAll();
-                      startAdvertising();
-                      startDiscovery();
-                    } catch (exception) {
-                      showSnackbar(exception);
-                    }
-                  },
-                ),
-                ElevatedButton(
-                  child: Text("Stop"),
-                  onPressed: () async {
-                    stopAll();
-                  },
-                ),
-              ],
-            ),
+            Divider(),
             Text("Number of connected devices: ${endpointMap.length}"),
             ElevatedButton(
               child: Text("Stop All Endpoints"),
@@ -111,26 +85,6 @@ class _MyBodyState extends State<Body> {
                 });
               },
             ),
-            ElevatedButton(
-              child: Text("Send File Payload"),
-              onPressed: () async {
-                PickedFile? file =
-                    await ImagePicker().getImage(source: ImageSource.gallery);
-
-                if (file == null) return;
-
-                for (MapEntry<String, ConnectionInfo> m
-                    in endpointMap.entries) {
-                  int payloadId =
-                      await Nearby().sendFilePayload(m.key, file.path);
-                  showSnackbar("Sending file to ${m.key}");
-                  Nearby().sendBytesPayload(
-                      m.key,
-                      Uint8List.fromList(
-                          "$payloadId:${file.path.split('/').last}".codeUnits));
-                }
-              },
-            ),
           ],
         ),
       ),
@@ -141,6 +95,10 @@ class _MyBodyState extends State<Body> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(a.toString()),
     ));
+  }
+
+  void getUUID() async {
+    await FlutterUdid.consistentUdid;
   }
 
   void stopAll() async {
@@ -228,27 +186,6 @@ class _MyBodyState extends State<Body> {
         if (payload.type == PayloadType.BYTES) {
           String str = String.fromCharCodes(payload.bytes!);
           showSnackbar(endid + ": " + str);
-
-          if (str.contains(':')) {
-            // used for file payload as file payload is mapped as
-            // payloadId:filename
-            int payloadId = int.parse(str.split(':')[0]);
-            String fileName = (str.split(':')[1]);
-
-            if (map.containsKey(payloadId)) {
-              if (await tempFile!.exists()) {
-                tempFile!.rename(tempFile!.parent.path + "/" + fileName);
-              } else {
-                showSnackbar("File doesn't exist");
-              }
-            } else {
-              //add to map if not already
-              map[payloadId] = fileName;
-            }
-          }
-        } else if (payload.type == PayloadType.FILE) {
-          showSnackbar(endid + ": File transfer started");
-          tempFile = File(payload.filePath!);
         }
       },
       onPayloadTransferUpdate: (endid, payloadTransferUpdate) {
@@ -260,15 +197,6 @@ class _MyBodyState extends State<Body> {
         } else if (payloadTransferUpdate.status == PayloadStatus.SUCCESS) {
           showSnackbar(
               "$endid success, total bytes = ${payloadTransferUpdate.totalBytes}");
-
-          if (map.containsKey(payloadTransferUpdate.id)) {
-            //rename the file now
-            String name = map[payloadTransferUpdate.id]!;
-            tempFile!.rename(tempFile!.parent.path + "/" + name);
-          } else {
-            //bytes not received till yet
-            map[payloadTransferUpdate.id] = "";
-          }
         }
       },
     );
